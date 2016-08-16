@@ -40,9 +40,28 @@ def get_jobs(json_data, review_number):
     if job_data is None:
         return None
 
-    job_dict = [x for x in job_data if x['url'] is not None
-                and x['url'].startswith('telnet')]
-    return job_dict
+    return job_data
+
+
+def job_started(jobdata):
+    """Determine if job has started."""
+    return jobdata['start_time'] is not None
+
+
+def job_finished(jobdata):
+    """Determine if job has finished."""
+    return jobdata['end_time'] is not None
+
+
+def get_short_url(url):
+    """Generate short URL for test results."""
+    baseurl = "https://is.gd/create.php"
+    params = {
+        'format': 'simple',
+        'url': url,
+    }
+    r = requests.post(baseurl, data=params)
+    return r.text
 
 
 def run():
@@ -58,6 +77,12 @@ def run():
         nargs=1,
         help="Gerrit review number (six digits)",
     )
+    parser.add_argument(
+        '-s', '--shorten',
+        action='store_true',
+        default=True,
+        help="Shorten URLs using is.gd"
+    )
     args = parser.parse_args()
 
     review_number = ''.join(args.review_number)
@@ -71,8 +96,36 @@ def run():
         print "Couldn't find any jobs for review {0}".format(review_number)
         sys.exit(1)
 
-    table_data = [[x['name'], x['result'], x['url']] for x in running_jobs]
-    table_data.insert(0, ['Jobs for {0}'.format(review_number), ''])
+    table_data = [['Jobs for {0}'.format(review_number), '']]
+    for running_job in running_jobs:
+
+        if not job_started(running_job):
+            # Job hasn't started yet
+            jobinfo = [
+                running_job['name'],
+                'Queued',
+                ''
+            ]
+        elif job_started(running_job) and not job_finished(running_job):
+            # Job is in progress
+            jobinfo = [
+                running_job['name'],
+                'Running',
+                running_job['url']
+            ]
+        elif job_finished(running_job):
+            # Job is done
+            jobinfo = [
+                running_job['name'],
+                running_job['result'].title()
+            ]
+            if args.shorten:
+                jobinfo.append(get_short_url(running_job['report_url']))
+            else:
+                jobinfo.append(running_job['report_url'])
+
+        table_data.append(jobinfo)
+
     table = AsciiTable(table_data)
     print table.table
 

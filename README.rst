@@ -22,22 +22,20 @@ URLs from Zuul's JSON status file:
 
 .. code-block:: console
 
-   $ python zuul_get.py 345997
-   +-------------------------------------+---------+--------------------------------+
-   | Jobs for 345997                     |         |                                |
-   +-------------------------------------+---------+--------------------------------+
-   | gate-openstack-ansible-releasenotes | SUCCESS | telnet://149.202.190.246:19885 |
-   | gate-openstack-ansible-docs         | SUCCESS | telnet://172.99.106.146:19885  |
-   | gate-openstack-ansible-linters      | None    | telnet://23.253.148.52:19885   |
-   | gate-openstack-ansible-dsvm-commit  | None    | telnet://23.253.151.120:19885  |
-   +-------------------------------------+---------+--------------------------------+
+   $ zuul_get 356016
+   +------------------------------------------------------------+---------+----------------------+
+   | Jobs for 356016                                            |         |                      |
+   +------------------------------------------------------------+---------+----------------------+
+   | gate-openstack-ansible-security-docs-ubuntu-xenial         | Queued  |                      |
+   | gate-openstack-ansible-security-linters-ubuntu-xenial      | Queued  |                      |
+   | gate-openstack-ansible-security-releasenotes               | Queued  |                      |
+   | gate-openstack-ansible-security-ansible-func-centos-7      | Success | https://is.gd/pUeKRT |
+   | gate-openstack-ansible-security-ansible-func-ubuntu-trusty | Queued  |                      |
+   | gate-openstack-ansible-security-ansible-func-ubuntu-xenial | Queued  |                      |
+   +------------------------------------------------------------+---------+----------------------+
 
-The script will throw an error if the review doesn't have an acttive CI job:
-
-.. code-block:: console
-
-   $ python zuul_get.py 345998
-   Couldn't find any jobs for review 345998
+If the job is in progress, a telnet link will appear. If the job has completed,
+a link to the results will be provided.
 
 Contributing
 ------------

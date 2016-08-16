@@ -24,7 +24,7 @@ required_packages = [
 
 setup(
     name='zuul_get',
-    version='0.0.1',
+    version='0.0.2',
     author='Major Hayden',
     author_email='major@mhtx.net',
     description="Retrieves CI job URLs from OpenStack Zuul",

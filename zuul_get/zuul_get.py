@@ -33,7 +33,7 @@ def search_for_job(json_data, review_number):
         for change_queue in pipeline.get('change_queues'):
             for heads in change_queue.get('heads'):
                 for job in heads:
-                    if job['id'] is not None:
+                    if job['id'] is not None and ',' in job['id']:
                         review, _ = job['id'].split(',')
                         if review == review_number:
                             return job['jobs']

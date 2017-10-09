@@ -15,11 +15,16 @@
 #
 """Gets the URLs to monitor a running OpenStack Zuul job."""
 import argparse
-import requests
-import sys
 
+import requests
 
 from terminaltables import AsciiTable
+
+
+ZUUL_URLS = {
+    '2': 'http://zuul.openstack.org/status.json',
+    '3': 'http://zuulv3.openstack.org/status.json'
+}
 
 
 def search_for_job(json_data, review_number):
@@ -28,13 +33,21 @@ def search_for_job(json_data, review_number):
         for change_queue in pipeline.get('change_queues'):
             for heads in change_queue.get('heads'):
                 for job in heads:
-                    if job['id'].startswith(review_number):
-                        return job['jobs']
+                    if job['id'] is not None:
+                        review, _ = job['id'].split(',')
+                        if review == review_number:
+                            return job['jobs']
     return None
 
 
-def get_jobs(json_data, review_number):
-    """Create a dictionary ob jobs."""
+def get_jobs(review_number, zuul_version=2):
+    """Create a dictionary of jobs."""
+    r = requests.get(
+        ZUUL_URLS[zuul_version],
+        verify=False,
+    )
+    json_data = r.json()
+
     job_data = search_for_job(json_data, review_number)
 
     if job_data is None:
@@ -64,6 +77,50 @@ def get_short_url(url):
     return r.text
 
 
+def make_table(review_number, running_jobs, args, zuul_version):
+    """Create table output."""
+    table_header = 'Zuulv{} Jobs for {}'.format(zuul_version, review_number)
+    table_data = [[table_header, '']]
+    for running_job in running_jobs:
+
+        if not job_started(running_job):
+            # Job hasn't started yet
+            jobinfo = [
+                running_job['name'],
+                'Queued',
+                ''
+            ]
+        elif job_started(running_job) and not job_finished(running_job):
+            # Job is in progress
+            if 'stream.html' in running_job['url']:
+                url = (
+                    "http://zuulv3.openstack.org/"
+                    "{}".format(running_job['url'])
+                )
+            else:
+                url = running_job['url']
+            jobinfo = [
+                running_job['name'],
+                'Running',
+                url
+            ]
+        elif job_finished(running_job):
+            # Job is done
+            jobinfo = [
+                running_job['name'],
+                running_job['result'].title()
+            ]
+            if args.shorten:
+                jobinfo.append(get_short_url(running_job['report_url']))
+            else:
+                jobinfo.append(running_job['report_url'])
+
+        table_data.append(jobinfo)
+
+    table = AsciiTable(table_data)
+    print(table.table)
+
+
 def run():
     """Handle the operations of the script."""
     parser = argparse.ArgumentParser(
@@ -87,47 +144,16 @@ def run():
 
     review_number = ''.join(args.review_number)
 
-    r = requests.get('http://zuul.openstack.org/status.json')
-    json_data = r.json()
+    for zuul_version in sorted(ZUUL_URLS.keys()):
+        running_jobs = get_jobs(review_number, zuul_version)
 
-    running_jobs = get_jobs(json_data, review_number)
+        if running_jobs is None:
+            msg = "Couldn't find any jobs for review {} in Zuulv{}"
+            print(msg.format(review_number, zuul_version))
+            continue
 
-    if running_jobs is None:
-        print "Couldn't find any jobs for review {0}".format(review_number)
-        sys.exit(1)
+        make_table(review_number, running_jobs, args, zuul_version)
 
-    table_data = [['Jobs for {0}'.format(review_number), '']]
-    for running_job in running_jobs:
-
-        if not job_started(running_job):
-            # Job hasn't started yet
-            jobinfo = [
-                running_job['name'],
-                'Queued',
-                ''
-            ]
-        elif job_started(running_job) and not job_finished(running_job):
-            # Job is in progress
-            jobinfo = [
-                running_job['name'],
-                'Running',
-                running_job['url']
-            ]
-        elif job_finished(running_job):
-            # Job is done
-            jobinfo = [
-                running_job['name'],
-                running_job['result'].title()
-            ]
-            if args.shorten:
-                jobinfo.append(get_short_url(running_job['report_url']))
-            else:
-                jobinfo.append(running_job['report_url'])
-
-        table_data.append(jobinfo)
-
-    table = AsciiTable(table_data)
-    print table.table
 
 if __name__ == "__main__":
     run()

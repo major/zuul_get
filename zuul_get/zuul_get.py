@@ -93,7 +93,7 @@ def make_table(review_number, running_jobs, args, zuul_version):
             # Job is in progress
             if 'stream.html' in running_job['url']:
                 url = (
-                    "http://zuulv3.openstack.org/"
+                    "http://zuul.openstack.org/"
                     "{}".format(running_job['url'])
                 )
             else:

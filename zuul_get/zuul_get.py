@@ -22,8 +22,7 @@ from terminaltables import AsciiTable
 
 
 ZUUL_URLS = {
-    '2': 'http://zuul.openstack.org/status.json',
-    '3': 'http://zuulv3.openstack.org/status.json'
+    '3': 'http://zuul.openstack.org/status.json',
 }
 
 
